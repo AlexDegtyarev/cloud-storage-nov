@@ -7,9 +7,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Files;
@@ -25,8 +23,10 @@ public class MainController implements Initializable {
     public ListView<String> clientView;
     public ListView<String> serverView;
     public TextField input;
-    private DataInputStream is;
-    private DataOutputStream os;
+    private BufferedInputStream bis;
+    private BufferedOutputStream bos;
+    private FileOutputStream fos;
+
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -44,8 +44,8 @@ public class MainController implements Initializable {
                 }
             });
             Socket socket = new Socket("localhost", 8189);
-            is = new DataInputStream(socket.getInputStream());
-            os = new DataOutputStream(socket.getOutputStream());
+            bis = new BufferedInputStream(socket.getInputStream());
+            bos = new BufferedOutputStream(socket.getOutputStream());
             Thread readThread = new Thread(this::read);
             readThread.setDaemon(true);
             readThread.start();
@@ -61,19 +61,29 @@ public class MainController implements Initializable {
     private void read() {
         try {
             while (true) {
-                String msg = is.readUTF();
-                log.debug("Received: {}", msg);
-                Platform.runLater(() -> clientView.getItems().add(msg));
+
+                //String msg = is.readUTF();
+               // log.debug("Received: {}", msg);
+               // Platform.runLater(() -> serverView.getItems().add(msg));
             }
         } catch (Exception e) {
             log.error("", e);
         }
     }
 
-    public void sendMessage(ActionEvent actionEvent) throws IOException {
-        String text = input.getText();
-        os.writeUTF(text);
-        os.flush();
+    public void copyFileToServer(ActionEvent actionEvent) throws IOException {
+        String nameFile = input.getText();
+        fos = new FileOutputStream("cloud-storage-nov-client/client" + nameFile);
+        bos = new BufferedOutputStream(fos);
+        byte[] arrayData = new byte[1];
+        int amountData;
+        amountData = bis.read(arrayData, 0, arrayData.length);
+        do {
+            bos.write(arrayData);
+            amountData = bis.read(arrayData);
+        } while (amountData != -1);
+        bos.flush();
+        bos.close();
         input.clear();
     }
 }
