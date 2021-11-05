@@ -7,9 +7,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Files;
@@ -22,17 +20,23 @@ import java.util.stream.Collectors;
 @Slf4j
 public class MainController implements Initializable {
     private Path clientDir;
+    private Path serverDir;
     public ListView<String> clientView;
     public ListView<String> serverView;
     public TextField input;
-    private DataInputStream is;
-    private DataOutputStream os;
+    private InputStream in;
+    private OutputStream out;
+    private FileOutputStream fos;
+    private FileInputStream fis;
+    private BufferedInputStream bis;
+    private BufferedOutputStream bos;
+
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         try {
             clientDir = Paths.get("cloud-storage-nov-client", "client");
-            if(!Files.exists(clientDir)) {
+            if (!Files.exists(clientDir)) {
                 Files.createDirectory(clientDir);
             }
             clientView.getItems().clear();
@@ -44,8 +48,8 @@ public class MainController implements Initializable {
                 }
             });
             Socket socket = new Socket("localhost", 8189);
-            is = new DataInputStream(socket.getInputStream());
-            os = new DataOutputStream(socket.getOutputStream());
+            in = socket.getInputStream();
+            out = socket.getOutputStream();
             Thread readThread = new Thread(this::read);
             readThread.setDaemon(true);
             readThread.start();
@@ -61,19 +65,31 @@ public class MainController implements Initializable {
     private void read() {
         try {
             while (true) {
-                String msg = is.readUTF();
-                log.debug("Received: {}", msg);
-                Platform.runLater(() -> clientView.getItems().add(msg));
+//                String msg = is.readUTF();
+//                log.debug("Received: {}", msg);
+//                Platform.runLater(() -> serverView.getItems().add(msg));
             }
         } catch (Exception e) {
             log.error("", e);
         }
     }
 
-    public void sendMessage(ActionEvent actionEvent) throws IOException {
-        String text = input.getText();
-        os.writeUTF(text);
-        os.flush();
-        input.clear();
+    public void copyFileToServer(ActionEvent actionEvent) {
+        String nameFile = input.getText();
+        try {
+            fis = new FileInputStream("cloud-storage-nov-client/client/" + nameFile);
+            bis = new BufferedInputStream(fis);
+            int amountData = -1;
+            byte[] arrayBuf = new byte[1024 * 8];
+            while ((amountData = bis.read(arrayBuf)) != -1) {
+                out.write(arrayBuf, 0, amountData);
+                out.flush();
+                bis.close();
+            }
+            log.debug("File to copy server");
+            input.clear();
+        } catch (IOException e) {
+            log.error("", e);
+        }
     }
 }
