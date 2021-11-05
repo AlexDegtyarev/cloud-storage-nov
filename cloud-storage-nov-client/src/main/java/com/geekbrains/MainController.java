@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class MainController implements Initializable {
     private Path clientDir;
+    private Path serverDir;
     public ListView<String> clientView;
     public ListView<String> serverView;
     public TextField input;
@@ -73,18 +74,20 @@ public class MainController implements Initializable {
         }
     }
 
-    public void FileToServer(ActionEvent actionEvent)  {
+    public void copyFileToServer(ActionEvent actionEvent) {
         String nameFile = input.getText();
         try {
             fis = new FileInputStream("cloud-storage-nov-client/client/" + nameFile);
             bis = new BufferedInputStream(fis);
-            int length = -1;
-            byte [] arrayBuf = new byte[1024];
-            while ((length = bis.read(arrayBuf)) != -1) {
-                out.write(arrayBuf, 0, length);
+            int amountData = -1;
+            byte[] arrayBuf = new byte[1024 * 8];
+            while ((amountData = bis.read(arrayBuf)) != -1) {
+                out.write(arrayBuf, 0, amountData);
+                out.flush();
+                bis.close();
             }
-            out.flush();
-            bis.close();
+            log.debug("File to copy server");
+            input.clear();
         } catch (IOException e) {
             log.error("", e);
         }

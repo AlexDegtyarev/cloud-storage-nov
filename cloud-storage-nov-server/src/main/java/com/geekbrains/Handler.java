@@ -55,25 +55,24 @@ public class Handler implements Runnable {
                 log.debug("File is created: {}", file.getName());
             }
             fos = new FileOutputStream(file);
+            log.debug("fos open");
             bos = new BufferedOutputStream(fos);
-            int length = -1;
-            byte[] arrayBuf = new byte[1024];
-                while ((length = in.read(arrayBuf)) != -1) {
-                    bos.write(arrayBuf, 0, length);
-                }
+            log.debug("bos open");
+            int amountData = -1;
+            byte[] arrayBuf = new byte[1024 * 8];
+            while ((amountData = in.read(arrayBuf)) != -1) {
+                bos.write(arrayBuf, 0, amountData);
                 bos.flush();
-                log.debug("Received: {}", file.getName());
+                log.debug("write data");
+                bos.close();
+            }
+
+            log.debug("Received: {}", file.getName());
 //                String response = String.format("%s %s: %s", getDate(), name, file.getName());
 //                log.debug("Message for response: {}", response);
 
         } catch (IOException e) {
             log.error("", e);
-        } finally {
-            try{
-                bos.close();
-            } catch (IOException e) {
-                log.error("", e);
-            }
         }
     }
 }
