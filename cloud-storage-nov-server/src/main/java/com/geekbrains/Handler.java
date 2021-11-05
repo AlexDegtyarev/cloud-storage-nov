@@ -13,18 +13,20 @@ public class Handler implements Runnable {
 
     private static int counter = 0;
     private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    private BufferedInputStream bis;
-    private BufferedOutputStream bos;
+    private InputStream in;
+    private OutputStream out;
     private final String name;
     private boolean isRunning;
     private FileInputStream fis;
+    private FileOutputStream fos;
+    private BufferedInputStream bis;
+    private BufferedOutputStream bos;
     private File dir;
     private File file;
-    public final static int FILE_SIZE = Integer.MAX_VALUE;
 
     public Handler(Socket socket) throws IOException {
-        bis = new BufferedInputStream(socket.getInputStream());
-        bos = new BufferedOutputStream(socket.getOutputStream());
+        in = socket.getInputStream();
+        out = socket.getOutputStream();
         counter++;
         name = "User#" + counter;
         log.debug("Set nick: {} for new client", name);
@@ -52,24 +54,26 @@ public class Handler implements Runnable {
             if (createFile) {
                 log.debug("File is created: {}", file.getName());
             }
-            while (isRunning) {
-                byte[] arrayData = new byte[(int) file.length()];
-                fis = new FileInputStream(file);
-                bis = new BufferedInputStream(fis);
-                bis.read(arrayData, 0, arrayData.length);
-                bos.write(arrayData, 0, arrayData.length);
+            fos = new FileOutputStream(file);
+            bos = new BufferedOutputStream(fos);
+            int length = -1;
+            byte[] arrayBuf = new byte[1024];
+                while ((length = in.read(arrayBuf)) != -1) {
+                    bos.write(arrayBuf, 0, length);
+                }
                 bos.flush();
-//                log.debug("Received: {}", file.getName());
+                log.debug("Received: {}", file.getName());
 //                String response = String.format("%s %s: %s", getDate(), name, file.getName());
 //                log.debug("Message for response: {}", response);
-                try {
-                    bos.close();
-                } catch (IOException e) {
-                    log.error("", e);
-                }
-            }
-        } catch (Exception e) {
+
+        } catch (IOException e) {
             log.error("", e);
+        } finally {
+            try{
+                bos.close();
+            } catch (IOException e) {
+                log.error("", e);
+            }
         }
     }
 }

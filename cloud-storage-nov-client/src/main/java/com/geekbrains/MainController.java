@@ -23,16 +23,19 @@ public class MainController implements Initializable {
     public ListView<String> clientView;
     public ListView<String> serverView;
     public TextField input;
+    private InputStream in;
+    private OutputStream out;
+    private FileOutputStream fos;
+    private FileInputStream fis;
     private BufferedInputStream bis;
     private BufferedOutputStream bos;
-    private FileOutputStream fos;
 
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         try {
             clientDir = Paths.get("cloud-storage-nov-client", "client");
-            if(!Files.exists(clientDir)) {
+            if (!Files.exists(clientDir)) {
                 Files.createDirectory(clientDir);
             }
             clientView.getItems().clear();
@@ -44,8 +47,8 @@ public class MainController implements Initializable {
                 }
             });
             Socket socket = new Socket("localhost", 8189);
-            bis = new BufferedInputStream(socket.getInputStream());
-            bos = new BufferedOutputStream(socket.getOutputStream());
+            in = socket.getInputStream();
+            out = socket.getOutputStream();
             Thread readThread = new Thread(this::read);
             readThread.setDaemon(true);
             readThread.start();
@@ -61,29 +64,29 @@ public class MainController implements Initializable {
     private void read() {
         try {
             while (true) {
-
-                //String msg = is.readUTF();
-               // log.debug("Received: {}", msg);
-               // Platform.runLater(() -> serverView.getItems().add(msg));
+//                String msg = is.readUTF();
+//                log.debug("Received: {}", msg);
+//                Platform.runLater(() -> serverView.getItems().add(msg));
             }
         } catch (Exception e) {
             log.error("", e);
         }
     }
 
-    public void copyFileToServer(ActionEvent actionEvent) throws IOException {
+    public void FileToServer(ActionEvent actionEvent)  {
         String nameFile = input.getText();
-        fos = new FileOutputStream("cloud-storage-nov-client/client" + nameFile);
-        bos = new BufferedOutputStream(fos);
-        byte[] arrayData = new byte[1];
-        int amountData;
-        amountData = bis.read(arrayData, 0, arrayData.length);
-        do {
-            bos.write(arrayData);
-            amountData = bis.read(arrayData);
-        } while (amountData != -1);
-        bos.flush();
-        bos.close();
-        input.clear();
+        try {
+            fis = new FileInputStream("cloud-storage-nov-client/client/" + nameFile);
+            bis = new BufferedInputStream(fis);
+            int length = -1;
+            byte [] arrayBuf = new byte[1024];
+            while ((length = bis.read(arrayBuf)) != -1) {
+                out.write(arrayBuf, 0, length);
+            }
+            out.flush();
+            bis.close();
+        } catch (IOException e) {
+            log.error("", e);
+        }
     }
 }
